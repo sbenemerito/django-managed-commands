@@ -1,0 +1,183 @@
+"""
+Django management command: {command_name}
+
+This command was generated using django-managed-commands.
+It includes built-in execution tracking and run-once capabilities.
+"""
+
+import time
+from django.core.management.base import BaseCommand, CommandError
+from django_managed_commands.utils import record_command_execution, should_run_command
+
+
+class Command(BaseCommand):
+    """
+    Management command for {app_name}.{command_name}
+
+    This command includes automatic execution tracking via CommandExecution model.
+    Set run_once = True to prevent duplicate executions.
+    """
+
+    help = "{command_name} command - add your description here"
+
+    # Set to True if this command should only run once successfully
+    run_once = False
+
+    def add_arguments(self, parser):
+        """
+        Add custom command arguments here, or remove if none are needed.
+
+        Example:
+            parser.add_argument(
+                '--example',
+                type=str,
+                help='Example argument description',
+            )
+        """
+        # Add your arguments here
+        pass
+
+    def handle(self, *args, **options):
+        """
+        Main command logic with execution tracking.
+
+        This method automatically:
+        - Checks if command should run (respects run_once setting)
+        - Tracks execution duration
+        - Records success/failure in CommandExecution model
+        - Handles errors gracefully
+        """
+        command_name = "{app_name}.{command_name}"
+
+        # Check if command should run (handles run_once logic)
+        if self.run_once and not should_run_command(command_name):
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Command {{command_name}} has already been executed successfully. "
+                    f"Skipping execution (run_once=True)."
+                )
+            )
+            return
+
+        # Track execution start time
+        start_time = time.time()
+        error_message = None
+
+        try:
+            self.stdout.write(self.style.SUCCESS(f"Starting {{command_name}}..."))
+
+            # ============================================
+            # YOUR LOGIC HERE
+            # ============================================
+            # Add your command implementation below
+
+            # Example:
+            # result = self.process_data(options)
+            # self.stdout.write(self.style.SUCCESS(f'Processed {{result}} items'))
+
+            # ============================================
+            # END YOUR LOGIC
+            # ============================================
+
+            # Calculate duration
+            duration = time.time() - start_time
+
+            # Filter out non-serializable options (like stdout, stderr)
+            serializable_options = {{
+                k: v
+                for k, v in options.items()
+                if k
+                not in [
+                    "stdout",
+                    "stderr",
+                    "no_color",
+                    "force_color",
+                    "skip_checks",
+                    "settings",
+                    "pythonpath",
+                    "traceback",
+                ]
+            }}
+
+            # Record successful execution
+            record_command_execution(
+                command_name=command_name,
+                success=True,
+                parameters=serializable_options,
+                duration=duration,
+                run_once=self.run_once,
+            )
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Command {{command_name}} completed successfully in {{duration:.2f}}s"
+                )
+            )
+
+        except CommandError as e:
+            # Handle Django CommandError
+            duration = time.time() - start_time
+            error_message = str(e)
+
+            # Filter out non-serializable options
+            serializable_options = {{
+                k: v
+                for k, v in options.items()
+                if k
+                not in [
+                    "stdout",
+                    "stderr",
+                    "no_color",
+                    "force_color",
+                    "skip_checks",
+                    "settings",
+                    "pythonpath",
+                    "traceback",
+                ]
+            }}
+
+            record_command_execution(
+                command_name=command_name,
+                success=False,
+                parameters=serializable_options,
+                duration=duration,
+                error_message=error_message,
+                run_once=self.run_once,
+            )
+
+            self.stdout.write(self.style.ERROR(f"Command failed: {{error_message}}"))
+            raise
+
+        except Exception as e:
+            # Handle unexpected errors
+            duration = time.time() - start_time
+            error_message = f"{{type(e).__name__}}: {{str(e)}}"
+
+            # Filter out non-serializable options
+            serializable_options = {{
+                k: v
+                for k, v in options.items()
+                if k
+                not in [
+                    "stdout",
+                    "stderr",
+                    "no_color",
+                    "force_color",
+                    "skip_checks",
+                    "settings",
+                    "pythonpath",
+                    "traceback",
+                ]
+            }}
+
+            record_command_execution(
+                command_name=command_name,
+                success=False,
+                parameters=serializable_options,
+                duration=duration,
+                error_message=error_message,
+                run_once=self.run_once,
+            )
+
+            self.stdout.write(self.style.ERROR(f"Unexpected error: {{error_message}}"))
+            raise CommandError(error_message)

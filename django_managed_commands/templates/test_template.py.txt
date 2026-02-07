@@ -1,0 +1,100 @@
+"""
+Tests for {command_name} management command.
+
+This test module verifies the behavior of the {command_name} command,
+including CommandExecution tracking and command output.
+"""
+
+from io import StringIO
+from django.test import TestCase
+from django.core.management import call_command
+from django_managed_commands.models import CommandExecution
+
+
+class Test{class_name}Command(TestCase):
+    """Test cases for {command_name} management command."""
+
+    def setUp(self):
+        """Clear CommandExecution records before each test."""
+        CommandExecution.objects.all().delete()
+
+    def test_command_creates_execution_record(self):
+        """Verify that running the command creates a CommandExecution record."""
+        # Run the command
+        call_command("{command_name}")
+
+        # Verify CommandExecution was created
+        self.assertEqual(CommandExecution.objects.count(), 1)
+
+        # Verify the command name is correct
+        execution = CommandExecution.objects.first()
+        self.assertEqual(execution.command_name, "{command_name}")
+
+    def test_command_output(self):
+        """Verify the command produces expected output."""
+        # Capture stdout
+        out = StringIO()
+        call_command("{command_name}", stdout=out)
+
+        # Verify output contains expected content
+        output = out.getvalue()
+        self.assertIn("expected output text", output)
+
+        # Add more specific assertions based on your command's output
+        # Example: self.assertIn('Success', output)
+
+    def test_command_success(self):
+        """
+        Verify the command completes successfully.
+        Ideally you'd want to add specific assertions before the `call_command()`,
+        and after it, based on your command's expected side-effects.
+        """
+        # Run the command
+        call_command("{command_name}")
+
+        # Verify execution was marked as successful
+        execution = CommandExecution.objects.first()
+        self.assertTrue(execution.success)
+        self.assertIsNone(execution.error_message)
+
+    def test_command_with_arguments(self):
+        """Test command with various arguments and options."""
+        # Example: call_command('{command_name}', '--option', 'value')
+        # Add tests for any command-specific arguments or options
+        pass
+
+    def test_run_once_prevents_reexecution(self):
+        """
+        Verify that run_once=True prevents command from running twice.
+
+        Note: Only include this test if your command has run_once=True
+        Remove this test if run_once=False or not applicable.
+        """
+        # First execution should succeed
+        call_command("{command_name}")
+        first_execution = CommandExecution.objects.first()
+        self.assertTrue(first_execution.success)
+
+        # Second execution should be prevented
+        out = StringIO()
+        call_command("{command_name}", stdout=out)
+
+        # Verify only one execution record exists
+        self.assertEqual(CommandExecution.objects.count(), 1)
+
+        # Verify output indicates command was skipped
+        output = out.getvalue()
+        self.assertIn("already been executed", output)
+
+    def test_command_error_handling(self):
+        """Verify the command handles errors gracefully."""
+        # Test error scenarios specific to your command
+        # Example: Invalid input, missing dependencies, etc.
+        pass
+
+    # Add additional test cases below as needed for your specific command
+    # Examples:
+    # - test_command_with_database_operations
+    # - test_command_with_external_api_calls
+    # - test_command_idempotency
+    # - test_command_performance
