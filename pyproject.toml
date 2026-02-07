@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-managed-commands"
+version = "0.1.0"
+description = "Track and manage Django management command executions with execution history and standardized testing"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Sam Benemerito", email = "me@sambenemerito.com"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "django>=3.2"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 3.2",
+    "Framework :: Django :: 4.0",
+    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+]
+
+[project.urls]
+Homepage = "https://github.com/sbenemerito/django-managed-commands"
+Repository = "https://github.com/sbenemerito/django-managed-commands"
+Issues = "https://github.com/sbenemerito/django-managed-commands/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["django_managed_commands"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "tests/",
+    ".pytest_cache/",
+    "*.pyc",
+    "__pycache__/",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
