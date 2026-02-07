@@ -83,43 +83,27 @@ python manage.py create_managed_command myapp send_notifications
 This creates `myapp/management/commands/send_notifications.py`:
 
 ```python
-import time
-from django.core.management.base import BaseCommand, CommandError
-from django_managed_commands.utils import record_command_execution, should_run_command
+from django_managed_commands.base import ManagedCommand
 
 
-class Command(BaseCommand):
-    help = 'send_notifications command - add your description here'
-    
-    run_once = False  # Tracks every execution
+class Command(ManagedCommand):
+    """send_notifications management command."""
 
-    def handle(self, *args, **options):
-        command_name = 'myapp.send_notifications'
-        start_time = time.time()
+    help = "send_notifications command - add your description here"
+    run_once = False
+
+    def execute_command(self, *args, **options):
+        # Your command logic here
+        self.stdout.write("Sending notifications...")
         
-        try:
-            # Your command logic here
-            self.stdout.write('Sending notifications...')
-            
-            # Record successful execution
-            duration = time.time() - start_time
-            record_command_execution(
-                command_name=command_name,
-                success=True,
-                duration=duration,
-                output='Notifications sent successfully'
-            )
-            
-        except Exception as e:
-            duration = time.time() - start_time
-            record_command_execution(
-                command_name=command_name,
-                success=False,
-                duration=duration,
-                error_message=str(e)
-            )
-            raise
+        self.stdout.write(self.style.SUCCESS("send_notifications completed successfully"))
 ```
+
+The `ManagedCommand` base class automatically handles:
+- **Execution tracking**: Records success/failure in `CommandExecution` model
+- **Timing**: Measures and stores execution duration
+- **Database transactions**: Your logic runs inside `transaction.atomic()` - if an exception is raised, all database changes are rolled back
+- **Error recording**: Failures are logged with error messages before re-raising
 
 ### Creating a run-once command
 
@@ -132,24 +116,21 @@ python manage.py create_managed_command myapp setup_initial_data --run-once
 The generated command includes automatic duplicate prevention:
 
 ```python
-class Command(BaseCommand):
+from django_managed_commands.base import ManagedCommand
+
+
+class Command(ManagedCommand):
+    """One-time setup command."""
+
+    help = "setup_initial_data command"
     run_once = True  # Prevents duplicate executions
-    
-    def handle(self, *args, **options):
-        command_name = 'myapp.setup_initial_data'
-        
-        # Automatically checks if already run successfully
-        if not should_run_command(command_name):
-            self.stdout.write(
-                self.style.WARNING(
-                    'Command has already been executed successfully. Skipping.'
-                )
-            )
-            return
-        
+
+    def execute_command(self, *args, **options):
         # Your one-time setup logic here
-        # ...
+        self.stdout.write(self.style.SUCCESS("Setup complete"))
 ```
+
+When `run_once=True`, the command automatically checks execution history and skips if already run successfully.
 
 ### Viewing execution history in Django admin
 
@@ -205,51 +186,71 @@ print(f"Average duration: {stats['avg_duration']:.2f}s")
 print(f"Success rate: {stats['success_count'] / stats['total_runs'] * 100:.1f}%")
 ```
 
+### Using ManagedCommand base class
+
+The recommended approach is to extend `ManagedCommand`:
+
+```python
+from django_managed_commands.base import ManagedCommand
+
+
+class Command(ManagedCommand):
+    help = "Process data with automatic tracking"
+    
+    # Optional: override command_name (auto-derived from module path if not set)
+    # command_name = "myapp.custom_name"
+
+    def add_arguments(self, parser):
+        parser.add_argument("--limit", type=int, default=100)
+
+    def execute_command(self, *args, **options):
+        # This runs inside a database transaction
+        limit = options["limit"]
+        processed = self.do_work(limit)
+        self.stdout.write(f"Processed {processed} items")
+        return processed  # Optional: return value is stored in execution record
+
+    def do_work(self, limit):
+        # Your implementation
+        return 42
+```
+
 ### Manual command tracking
 
-You can manually track command execution without using the generator:
+For existing commands or special cases, you can manually track execution:
 
 ```python
 import time
 from django.core.management.base import BaseCommand
-from django_managed_commands.utils import (
-    record_command_execution,
-    should_run_command
-)
+from django_managed_commands.utils import record_command_execution
 
 
 class Command(BaseCommand):
-    help = 'Custom command with manual tracking'
+    help = "Custom command with manual tracking"
 
     def handle(self, *args, **options):
-        command_name = 'myapp.custom_command'
+        command_name = "myapp.custom_command"
         start_time = time.time()
-        
+
         try:
-            # Your command logic
             result = self.do_work()
-            
-            # Record success
             record_command_execution(
                 command_name=command_name,
                 success=True,
-                parameters={'option': options.get('option')},
-                output=f'Processed {result} items',
-                duration=time.time() - start_time
+                parameters={"option": options.get("option")},
+                output=f"Processed {result} items",
+                duration=time.time() - start_time,
             )
-            
         except Exception as e:
-            # Record failure
             record_command_execution(
                 command_name=command_name,
                 success=False,
                 error_message=str(e),
-                duration=time.time() - start_time
+                duration=time.time() - start_time,
             )
             raise
-    
+
     def do_work(self):
-        # Your implementation
         return 42
 ```
 
@@ -260,13 +261,17 @@ class Command(BaseCommand):
 Commands can be configured to run only once successfully by setting `run_once=True`:
 
 ```python
-class Command(BaseCommand):
+class Command(ManagedCommand):
     run_once = True  # Command will only execute once successfully
+
+    def execute_command(self, *args, **options):
+        # Your one-time logic here
+        pass
 ```
 
 **How it works:**
 
-1. Before execution, `should_run_command()` checks the command history
+1. Before execution, the base class checks the command history
 2. If a successful execution with `run_once=True` exists, the command is skipped
 3. If the previous execution failed, the command will run again
 4. If no previous execution exists, the command runs normally
@@ -278,6 +283,25 @@ class Command(BaseCommand):
 - System initialization tasks
 - Feature flag setup
 - Configuration deployment
+
+### Transaction Behavior
+
+All commands extending `ManagedCommand` run inside a database transaction:
+
+```python
+class Command(ManagedCommand):
+    def execute_command(self, *args, **options):
+        # All database operations here are atomic
+        User.objects.create(username="alice")
+        Profile.objects.create(user=user)  # If this fails, User creation is rolled back
+```
+
+**Key points:**
+
+- Your `execute_command` logic runs inside `transaction.atomic()`
+- If any exception is raised, all database changes are rolled back
+- Execution recording happens *outside* the transaction, so failures are always logged
+- This ensures data consistency without manual transaction management
 
 ### Tracking Behavior
 
@@ -305,44 +329,111 @@ The `CommandExecution` model uses Django's default database. No special configur
 
 To add tracking to existing commands:
 
-1. **Option A: Use the generator to create a new tracked version**
-   ```bash
-   python manage.py create_managed_command myapp existing_command --force
-   ```
-
-2. **Option B: Manually add tracking to existing commands**
+1. **Option A: Extend ManagedCommand (recommended)**
    ```python
    # Before
+   from django.core.management.base import BaseCommand
+
    class Command(BaseCommand):
        def handle(self, *args, **options):
            # Your logic
            pass
-   
+
    # After
+   from django_managed_commands.base import ManagedCommand
+
+   class Command(ManagedCommand):
+       def execute_command(self, *args, **options):
+           # Your logic (now with automatic tracking + transactions)
+           pass
+   ```
+
+2. **Option B: Use the generator with --force**
+   ```bash
+   python manage.py create_managed_command myapp existing_command --force
+   ```
+
+3. **Option C: Manual tracking** (for special cases where you can't change the base class)
+   ```python
    import time
    from django_managed_commands.utils import record_command_execution
-   
+
    class Command(BaseCommand):
        def handle(self, *args, **options):
            start_time = time.time()
            try:
                # Your logic
                record_command_execution(
-                   command_name='myapp.existing_command',
+                   command_name="myapp.existing_command",
                    success=True,
-                   duration=time.time() - start_time
+                   duration=time.time() - start_time,
                )
            except Exception as e:
                record_command_execution(
-                   command_name='myapp.existing_command',
+                   command_name="myapp.existing_command",
                    success=False,
                    error_message=str(e),
-                   duration=time.time() - start_time
+                   duration=time.time() - start_time,
                )
                raise
    ```
 
 ## API Reference
+
+### Base Classes
+
+#### `ManagedCommand`
+
+Base class for Django management commands with automatic tracking and transaction support.
+
+**Location:** `django_managed_commands.base.ManagedCommand`
+
+**Class Attributes:**
+
+- `run_once` (bool, default=False): Set to `True` to prevent duplicate executions
+- `command_name` (str, default=None): Override to customize the command name. If not set, auto-derived from module path (e.g., `myapp.management.commands.foo` → `myapp.foo`)
+
+**Methods to Override:**
+
+- `execute_command(self, *args, **options)`: Your command logic. Runs inside a database transaction.
+- `add_arguments(self, parser)`: Add command-line arguments (same as `BaseCommand`)
+
+**Example:**
+```python
+from django_managed_commands.base import ManagedCommand
+
+
+class Command(ManagedCommand):
+    help = "Import data from external API"
+    run_once = False
+
+    def add_arguments(self, parser):
+        parser.add_argument("--source", type=str, required=True)
+        parser.add_argument("--dry-run", action="store_true")
+
+    def execute_command(self, *args, **options):
+        source = options["source"]
+        dry_run = options["dry_run"]
+
+        if dry_run:
+            self.stdout.write("Dry run mode - no changes will be made")
+            return
+
+        # Your logic here - runs in a transaction
+        count = self.import_data(source)
+        self.stdout.write(self.style.SUCCESS(f"Imported {count} records"))
+        return count  # Stored in execution record
+
+    def import_data(self, source):
+        # Implementation
+        return 42
+```
+
+**Behavior:**
+- `execute_command()` runs inside `transaction.atomic()`
+- Execution is recorded in `CommandExecution` model (success or failure)
+- Duration is automatically measured
+- On exception: transaction rolls back, error is recorded, exception re-raised
 
 ### Utility Functions
 
