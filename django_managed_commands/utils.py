@@ -100,3 +100,40 @@ def should_run_command(command_name):
         return False
 
     return True
+
+
+def get_command_history(command_name, limit=10):
+    """
+    Retrieve the execution history for a specific command.
+
+    Returns a QuerySet of CommandExecution records for the specified command,
+    ordered by execution time (newest first) and limited to the specified number
+    of results.
+
+    Args:
+        command_name (str): The name of the management command to retrieve history for.
+        limit (int, optional): Maximum number of records to return. Defaults to 10.
+
+    Returns:
+        QuerySet: A Django QuerySet of CommandExecution instances, ordered by
+                  -executed_at (newest first), limited to the specified count.
+
+    Example:
+        >>> # Get the last 5 executions of a command
+        >>> history = get_command_history("migrate", limit=5)
+        >>> for execution in history:
+        ...     print(f"{execution.executed_at}: {execution.success}")
+        2024-01-15 10:30:00: True
+        2024-01-14 09:15:00: True
+        2024-01-13 08:00:00: False
+
+        >>> # Get default 10 most recent executions
+        >>> recent = get_command_history("collectstatic")
+        >>> print(recent.count())
+        10
+    """
+    return (
+        CommandExecution.objects.filter(command_name=command_name)
+        .order_by("-executed_at")
+        .all()[:limit]
+    )
