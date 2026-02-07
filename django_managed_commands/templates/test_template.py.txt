@@ -1,10 +1,3 @@
-"""
-Tests for {command_name} management command.
-
-This test module verifies the behavior of the {command_name} command,
-including CommandExecution tracking and command output.
-"""
-
 from io import StringIO
 
 from django.core.management import call_command
@@ -25,27 +18,9 @@ class Test{class_name}Command(TestCase):
         # Run the command
         call_command("{command_name}")
 
-        # Verify CommandExecution was created
-        self.assertEqual(CommandExecution.objects.count(), 1)
-
-        # Verify the command name is correct
-        # Note: command_name is stored as "{app_name}.{command_name}" in the database
-        execution = CommandExecution.objects.first()
-        self.assertEqual(execution.command_name, "{app_name}.{command_name}")
-
-    def test_command_output(self):
-        """Verify the command produces expected output."""
-        # Capture stdout
-        out = StringIO()
-        call_command("{command_name}", stdout=out)
-
-        # Verify output contains expected content
-        # The default command template outputs "completed successfully" on success
-        output = out.getvalue()
-        self.assertIn("completed successfully", output)
-
-        # TODO: Add more specific assertions based on your command's output
-        # Example: self.assertIn('Processed 10 items', output)
+        self.assertTrue(
+            CommandExecution.objects.filter(command_name="{app_name}.{command_name}").exists()
+        )
 
     def test_command_success(self):
         """
@@ -53,13 +28,34 @@ class Test{class_name}Command(TestCase):
         Ideally you'd want to add specific assertions before the `call_command()`,
         and after it, based on your command's expected side-effects.
         """
-        # Run the command
+        # You can add pre-execution assertions here
+
         call_command("{command_name}")
 
-        # Verify execution was marked as successful
-        execution = CommandExecution.objects.first()
+        execution = CommandExecution.objects.get(command_name="{app_name}.{command_name}")
         self.assertTrue(execution.success)
-        self.assertEqual(execution.error_message, "")
+        self.assertIsNotNone(execution.duration)
+
+        # Side-effect assertions should be around here
+
+    def test_command_failure(self):
+        """
+        Verify the command handles failures gracefully. Tests here should be along the lines of:
+        - error scenarios specific to your command like invalid input, etc
+        - errors are recorded in CommandExecution
+        - database changes are rolled back on failure
+        """
+        # You can add pre-execution assertions here
+
+        call_command("{command_name}")
+
+        # Verify execution was marked as unsuccessful
+        execution = CommandExecution.objects.first()
+        self.assertFalse(execution.success)
+        # Verify that error message comes up non-blank (you can check parameters, and output furthere here)
+        self.assertNotEqual(execution.error_message, "")
+
+        # Roll back assertions should be around here
 
     def test_command_with_arguments(self):
         """Test command with various arguments and options."""
@@ -89,12 +85,6 @@ class Test{class_name}Command(TestCase):
         # Verify output indicates command was skipped
         output = out.getvalue()
         self.assertIn("already been executed", output)
-
-    def test_command_error_handling(self):
-        """Verify the command handles errors gracefully."""
-        # Test error scenarios specific to your command
-        # Example: Invalid input, missing dependencies, etc.
-        pass
 
     # Add additional test cases below as needed for your specific command
     # Examples:
