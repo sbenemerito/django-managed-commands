@@ -18,7 +18,7 @@ Too many times I've been involved in projects where somebody creates a managemen
 
 If you are on the same boat, then the answer is probably yes.
 
-Also because we had something similar in a team I was previously involved in, and I thought it was nice to have this in Django projects I'm currently working on. <small>Shoutout to the guys at Linkers: Suzuki R., Yokoyama I., Nathan, Onodera Y.</small>
+Also because we had something similar in a team I was previously involved in, and I thought it was nice to have this in Django projects I'm currently working on. <sub>Shoutout to the guys at Linkers: Suzuki R., Yokoyama I., Nathan W., Onodera Y.</sub>
 
 ## Installation
 
@@ -250,7 +250,7 @@ class Command(BaseCommand):
 
 ## Configuration
 
-### Run-Once Behavior
+### Run-once Behavior
 
 Commands can be configured to run only once successfully by setting `run_once=True`:
 
