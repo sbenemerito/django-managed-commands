@@ -1,6 +1,11 @@
 # django-managed-commands
 
-<!-- Badges will be added here: PyPI version, Python versions, Django versions, License, Build status -->
+[![PyPI version](https://img.shields.io/pypi/v/django-managed-commands)](https://pypi.org/project/django-managed-commands/)
+[![Python versions](https://img.shields.io/pypi/pyversions/django-managed-commands)](https://pypi.org/project/django-managed-commands/)
+[![Django versions](https://img.shields.io/badge/django-3.2+-blue)](https://pypi.org/project/django-managed-commands/)
+[![License](https://img.shields.io/pypi/l/django-managed-commands)](https://github.com/sbenemerito/django-managed-commands/blob/main/LICENSE)
+[![CI](https://github.com/sbenemerito/django-managed-commands/actions/workflows/ci.yml/badge.svg)](https://github.com/sbenemerito/django-managed-commands/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/sbenemerito/django-managed-commands/graph/badge.svg)](https://codecov.io/gh/sbenemerito/django-managed-commands)
 
 ## Overview
 
