@@ -27,8 +27,9 @@ class Test{class_name}Command(TestCase):
         self.assertEqual(CommandExecution.objects.count(), 1)
 
         # Verify the command name is correct
+        # Note: command_name is stored as "{app_name}.{command_name}" in the database
         execution = CommandExecution.objects.first()
-        self.assertEqual(execution.command_name, "{command_name}")
+        self.assertEqual(execution.command_name, "{app_name}.{command_name}")
 
     def test_command_output(self):
         """Verify the command produces expected output."""
@@ -37,11 +38,12 @@ class Test{class_name}Command(TestCase):
         call_command("{command_name}", stdout=out)
 
         # Verify output contains expected content
+        # The default command template outputs "completed successfully" on success
         output = out.getvalue()
-        self.assertIn("expected output text", output)
+        self.assertIn("completed successfully", output)
 
-        # Add more specific assertions based on your command's output
-        # Example: self.assertIn('Success', output)
+        # TODO: Add more specific assertions based on your command's output
+        # Example: self.assertIn('Processed 10 items', output)
 
     def test_command_success(self):
         """
@@ -55,7 +57,7 @@ class Test{class_name}Command(TestCase):
         # Verify execution was marked as successful
         execution = CommandExecution.objects.first()
         self.assertTrue(execution.success)
-        self.assertIsNone(execution.error_message)
+        self.assertEqual(execution.error_message, "")
 
     def test_command_with_arguments(self):
         """Test command with various arguments and options."""
