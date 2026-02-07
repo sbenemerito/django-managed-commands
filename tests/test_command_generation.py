@@ -48,9 +48,7 @@ class CreateManagedCommandTest(TestCase):
             sys.path.remove(self.test_dir)
 
         # Remove testapp from sys.modules to force reimport
-        modules_to_remove = [
-            key for key in sys.modules.keys() if key.startswith(TEST_APP_NAME)
-        ]
+        modules_to_remove = [key for key in sys.modules.keys() if key.startswith(TEST_APP_NAME)]
         for module in modules_to_remove:
             del sys.modules[module]
 
@@ -59,9 +57,7 @@ class CreateManagedCommandTest(TestCase):
 
     def _get_command_path(self, command_name):
         """Helper to get expected command file path."""
-        return os.path.join(
-            self.test_app_path, "management", "commands", f"{command_name}.py"
-        )
+        return os.path.join(self.test_app_path, "management", "commands", f"{command_name}.py")
 
     def _get_test_path(self, command_name):
         """Helper to get expected test file path."""
@@ -86,9 +82,7 @@ class CreateManagedCommandTest(TestCase):
 
         # Verify command file exists
         command_path = self._get_command_path(command_name)
-        self.assertTrue(
-            os.path.exists(command_path), f"Command file should exist at {command_path}"
-        )
+        self.assertTrue(os.path.exists(command_path), f"Command file should exist at {command_path}")
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
     def test_creates_test_file(self):
@@ -105,9 +99,7 @@ class CreateManagedCommandTest(TestCase):
 
         # Verify test file exists
         test_path = self._get_test_path(command_name)
-        self.assertTrue(
-            os.path.exists(test_path), f"Test file should exist at {test_path}"
-        )
+        self.assertTrue(os.path.exists(test_path), f"Test file should exist at {test_path}")
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
     def test_creates_init_files(self):
@@ -130,20 +122,17 @@ class CreateManagedCommandTest(TestCase):
         )
 
         # Verify __init__.py in management/commands/
-        commands_init = os.path.join(
-            self.test_app_path, "management", "commands", "__init__.py"
-        )
+        commands_init = os.path.join(self.test_app_path, "management", "commands", "__init__.py")
         self.assertTrue(
             os.path.exists(commands_init),
             f"__init__.py should exist at {commands_init}",
         )
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
-    def test_command_file_has_basecommand(self):
-        """Verify generated command imports and extends BaseCommand."""
+    def test_command_file_has_managed_command(self):
+        """Verify generated command imports and extends ManagedCommand."""
         command_name = "mycommand"
 
-        # Call the command
         call_command(
             "create_managed_command",
             self.test_app_name,
@@ -151,31 +140,27 @@ class CreateManagedCommandTest(TestCase):
             stdout=StringIO(),
         )
 
-        # Read generated command file
         command_path = self._get_command_path(command_name)
         with open(command_path, "r") as f:
             content = f.read()
 
-        # Verify imports BaseCommand
         self.assertIn(
-            "from django.core.management.base import BaseCommand",
+            "from django_managed_commands.base import ManagedCommand",
             content,
-            "Command should import BaseCommand",
+            "Command should import ManagedCommand",
         )
 
-        # Verify class extends BaseCommand
         self.assertIn(
-            "class Command(BaseCommand):",
+            "class Command(ManagedCommand):",
             content,
-            "Command class should extend BaseCommand",
+            "Command class should extend ManagedCommand",
         )
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
-    def test_command_file_has_tracking(self):
-        """Verify record_command_execution is in generated file."""
+    def test_command_file_uses_managed_command_base(self):
+        """Verify generated file extends ManagedCommand which provides tracking."""
         command_name = "mycommand"
 
-        # Call the command
         call_command(
             "create_managed_command",
             self.test_app_name,
@@ -183,23 +168,20 @@ class CreateManagedCommandTest(TestCase):
             stdout=StringIO(),
         )
 
-        # Read generated command file
         command_path = self._get_command_path(command_name)
         with open(command_path, "r") as f:
             content = f.read()
 
-        # Verify imports tracking utilities
         self.assertIn(
-            "from django_managed_commands.utils import record_command_execution",
+            "from django_managed_commands.base import ManagedCommand",
             content,
-            "Command should import record_command_execution",
+            "Command should import ManagedCommand which provides tracking",
         )
 
-        # Verify record_command_execution is called
         self.assertIn(
-            "record_command_execution(",
+            "class Command(ManagedCommand):",
             content,
-            "Command should call record_command_execution",
+            "Command should extend ManagedCommand for automatic tracking",
         )
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
@@ -221,9 +203,7 @@ class CreateManagedCommandTest(TestCase):
             content = f.read()
 
         # Verify imports TestCase
-        self.assertIn(
-            "from django.test import TestCase", content, "Test should import TestCase"
-        )
+        self.assertIn("from django.test import TestCase", content, "Test should import TestCase")
 
         # Verify imports call_command
         self.assertIn(
@@ -255,9 +235,7 @@ class CreateManagedCommandTest(TestCase):
         invalid_app = "nonexistent_app"
 
         with self.assertRaises(CommandError) as cm:
-            call_command(
-                "create_managed_command", invalid_app, command_name, stdout=StringIO()
-            )
+            call_command("create_managed_command", invalid_app, command_name, stdout=StringIO())
 
         # Error should mention the app not being in INSTALLED_APPS
         error_msg = str(cm.exception).lower()
@@ -380,9 +358,7 @@ class CreateManagedCommandTest(TestCase):
         # Try to create again without --force
         out = StringIO()
         with self.assertRaises(CommandError) as cm:
-            call_command(
-                "create_managed_command", self.test_app_name, command_name, stdout=out
-            )
+            call_command("create_managed_command", self.test_app_name, command_name, stdout=out)
 
         # Error should mention file exists or use --force
         error_msg = str(cm.exception).lower()
@@ -400,7 +376,6 @@ class CreateManagedCommandTest(TestCase):
         """Verify Command class exists in generated file."""
         command_name = "mycommand"
 
-        # Call the command
         call_command(
             "create_managed_command",
             self.test_app_name,
@@ -408,16 +383,14 @@ class CreateManagedCommandTest(TestCase):
             stdout=StringIO(),
         )
 
-        # Read generated command file
         command_path = self._get_command_path(command_name)
         with open(command_path, "r") as f:
             content = f.read()
 
-        # Verify Command class exists
         self.assertIn(
-            "class Command(BaseCommand):",
+            "class Command(ManagedCommand):",
             content,
-            "Generated file should contain Command class",
+            "Generated file should contain Command class extending ManagedCommand",
         )
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
@@ -446,11 +419,10 @@ class CreateManagedCommandTest(TestCase):
         )
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
-    def test_generated_command_has_handle_method(self):
-        """Verify generated command has handle method."""
+    def test_generated_command_has_execute_command_method(self):
+        """Verify generated command has execute_command method."""
         command_name = "mycommand"
 
-        # Call the command
         call_command(
             "create_managed_command",
             self.test_app_name,
@@ -458,13 +430,11 @@ class CreateManagedCommandTest(TestCase):
             stdout=StringIO(),
         )
 
-        # Read generated command file
         command_path = self._get_command_path(command_name)
         with open(command_path, "r") as f:
             content = f.read()
 
-        # Verify handle method exists
-        self.assertIn("def handle(self", content, "Command should have handle method")
+        self.assertIn("def execute_command(self", content, "Command should have execute_command method")
 
     @override_settings(INSTALLED_APPS=["django_managed_commands", TEST_APP_NAME])
     def test_generated_command_has_help_text(self):
