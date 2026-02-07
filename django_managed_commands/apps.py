@@ -4,7 +4,7 @@ from django.apps import AppConfig
 class DjangoManagedCommandsConfig(AppConfig):
     """
     Django app configuration for django-managed-commands.
-    
+
     Provides management command discovery and execution capabilities
     for Django projects.
     """

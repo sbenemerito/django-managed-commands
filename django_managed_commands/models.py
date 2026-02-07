@@ -10,13 +10,13 @@ from django.db import models
 class CommandExecution(models.Model):
     """
     Tracks execution history of Django management commands.
-    
+
     This model stores information about each time a management command is run,
     including its parameters, output, success status, and duration. It provides
     an audit trail for command execution and helps prevent duplicate runs of
     commands that should only execute once.
     """
-    
+
     command_name = models.CharField(
         max_length=255,
         help_text="Name of the management command"
@@ -53,14 +53,14 @@ class CommandExecution(models.Model):
         default=False,
         help_text="Whether this command should only run once"
     )
-    
+
     def __str__(self):
         """Return string representation of command execution."""
         status = "Success" if self.success else "Failed"
         return f"{self.command_name} - {status}"
-    
 
-    
+
+
     class Meta:
         """Meta options for CommandExecution model."""
         ordering = ["-executed_at"]

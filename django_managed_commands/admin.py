@@ -14,7 +14,7 @@ from .models import CommandExecution
 class CommandExecutionAdmin(admin.ModelAdmin):
     """
     Admin interface for CommandExecution model.
-    
+
     Provides a read-only view of command execution history with:
     - List display of key execution details
     - Filtering by success status, command name, and execution date
@@ -22,7 +22,7 @@ class CommandExecutionAdmin(admin.ModelAdmin):
     - Date hierarchy for easy navigation by execution date
     - All fields read-only to prevent modification of execution records
     """
-    
+
     list_display = ['command_name', 'executed_at', 'success', 'duration']
     list_filter = ['success', 'command_name', 'executed_at', 'run_once']
     search_fields = ['command_name', 'output', 'error_message']

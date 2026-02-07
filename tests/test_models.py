@@ -18,7 +18,7 @@ class CommandExecutionModelTest(TestCase):
         before = timezone.now()
         duration = 5.0  # Duration in seconds as float
         parameters = {"arg1": "value1", "flag": True}
-        
+
         execution = CommandExecution.objects.create(
             command_name="test_command",
             success=True,
@@ -29,7 +29,7 @@ class CommandExecutionModelTest(TestCase):
             run_once=False
         )
         after = timezone.now()
-        
+
         self.assertEqual(execution.command_name, "test_command")
         # Verify executed_at was automatically set (auto_now_add behavior)
         self.assertIsNotNone(execution.executed_at)
@@ -48,7 +48,7 @@ class CommandExecutionModelTest(TestCase):
             command_name="a" * 255
         )
         self.assertEqual(len(execution.command_name), 255)
-        
+
         # Verify field properties
         field = CommandExecution._meta.get_field('command_name')
         self.assertEqual(field.max_length, 255)
@@ -60,11 +60,11 @@ class CommandExecutionModelTest(TestCase):
             command_name="test_command"
         )
         after = timezone.now()
-        
+
         self.assertIsNotNone(execution.executed_at)
         self.assertGreaterEqual(execution.executed_at, before)
         self.assertLessEqual(execution.executed_at, after)
-        
+
         # Verify field has auto_now_add
         field = CommandExecution._meta.get_field('executed_at')
         self.assertTrue(field.auto_now_add)
@@ -75,7 +75,7 @@ class CommandExecutionModelTest(TestCase):
             command_name="test_command"
         )
         self.assertTrue(execution.success)
-        
+
         # Verify field default
         field = CommandExecution._meta.get_field('success')
         self.assertTrue(field.default)
@@ -97,12 +97,12 @@ class CommandExecutionModelTest(TestCase):
             "list": [1, 2, 3],
             "nested": {"key": "value"}
         }
-        
+
         execution = CommandExecution.objects.create(
             command_name="test_command",
             parameters=complex_params
         )
-        
+
         # Refresh from database to ensure JSON serialization works
         execution.refresh_from_db()
         self.assertEqual(execution.parameters, complex_params)
@@ -113,7 +113,7 @@ class CommandExecutionModelTest(TestCase):
             command_name="test_command"
         )
         self.assertEqual(execution.output, "")
-        
+
         # Verify field allows blank
         field = CommandExecution._meta.get_field('output')
         self.assertTrue(field.blank)
@@ -124,7 +124,7 @@ class CommandExecutionModelTest(TestCase):
             command_name="test_command"
         )
         self.assertEqual(execution.error_message, "")
-        
+
         # Verify field allows blank
         field = CommandExecution._meta.get_field('error_message')
         self.assertTrue(field.blank)
@@ -135,12 +135,12 @@ class CommandExecutionModelTest(TestCase):
             command_name="test_command"
         )
         self.assertIsNone(execution.duration)
-        
+
         # Verify field allows null
         field = CommandExecution._meta.get_field('duration')
         self.assertTrue(field.null)
         self.assertTrue(field.blank)
-        
+
         # Test setting duration (as float in seconds)
         execution.duration = 10.0
         execution.save()
@@ -153,7 +153,7 @@ class CommandExecutionModelTest(TestCase):
             command_name="test_command"
         )
         self.assertFalse(execution.run_once)
-        
+
         # Verify field default
         field = CommandExecution._meta.get_field('run_once')
         self.assertFalse(field.default)
@@ -165,7 +165,7 @@ class CommandExecutionModelTest(TestCase):
             success=True
         )
         str_repr = str(execution)
-        
+
         # Should contain command name and some indication of status
         self.assertIn("test_command", str_repr)
         # Common patterns: "test_command - Success" or "test_command (success)"
@@ -179,22 +179,22 @@ class CommandExecutionModelTest(TestCase):
         old_execution = CommandExecution.objects.create(
             command_name="old_command"
         )
-        
+
         # Small delay to ensure different timestamps
         import time
         time.sleep(0.01)
-        
+
         new_execution = CommandExecution.objects.create(
             command_name="new_command"
         )
-        
+
         # Query all executions
         executions = list(CommandExecution.objects.all())
-        
+
         # Newest should be first
         self.assertEqual(executions[0].id, new_execution.id)
         self.assertEqual(executions[1].id, old_execution.id)
-        
+
         # Verify Meta ordering
         self.assertEqual(
             CommandExecution._meta.ordering,
