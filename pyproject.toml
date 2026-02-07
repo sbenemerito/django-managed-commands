@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-managed-commands"
-version = "0.2.0"
+version = "0.3.0"
 description = "Track and manage Django management command executions with execution history and standardized testing"
 readme = "README.md"
 license = {text = "MIT"}
