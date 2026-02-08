@@ -19,9 +19,14 @@ class Command(ManagedCommand):
     run_once = False
 
     def add_arguments(self, parser):
-        super().add_arguments(parser)  # Keeps --dry-run from base class
+        """
+        Add your custom arguments here.
+        Docs: https://docs.djangoproject.com/en/stable/howto/custom-management-commands/
+
+        Do not remove the super() call - it provides the --dry-run flag.
+        """
+        super().add_arguments(parser)
         # parser.add_argument("--my-arg", type=str, help="Custom argument")
-        # Docs: https://docs.djangoproject.com/en/stable/howto/custom-management-commands/
 
     def execute_command(self, *args, **options):
         # TODO: Add your command logic here
