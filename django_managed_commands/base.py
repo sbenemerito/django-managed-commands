@@ -25,6 +25,7 @@ class ManagedCommand(BaseCommand):
     - Database transaction wrapping (all-or-nothing)
     - Execution recording in CommandExecution model
     - Run-once support via `run_once = True`
+    - Built-in --dry-run flag (executes but rolls back transaction)
 
     Example:
         class Command(ManagedCommand):
@@ -54,7 +55,15 @@ class ManagedCommand(BaseCommand):
         "settings",
         "pythonpath",
         "traceback",
+        "dry_run",
     )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Execute command but roll back all database changes",
+        )
 
     def get_command_name(self):
         """
@@ -90,6 +99,7 @@ class ManagedCommand(BaseCommand):
         5. Re-raises any exceptions after recording
         """
         cmd_name = self.get_command_name()
+        dry_run = options.get("dry_run", False)
 
         # Check if command should run (respects run_once)
         if self.run_once and not should_run_command(cmd_name):
@@ -100,26 +110,34 @@ class ManagedCommand(BaseCommand):
             )
             return
 
+        if dry_run:
+            self.stdout.write(self.style.WARNING("DRY RUN - all database changes will be rolled back"))
+
         start_time = time.time()
         serializable_options = self.get_serializable_options(options)
 
         try:
-            # Run command logic inside a transaction for atomicity
             with transaction.atomic():
                 result = self.execute_command(*args, **options)
+                if dry_run:
+                    transaction.set_rollback(True)
 
-            # Record successful execution (outside transaction)
             duration = time.time() - start_time
-            record_command_execution(
-                command_name=cmd_name,
-                success=True,
-                parameters=serializable_options,
-                output=str(result) if result else "",
-                duration=duration,
-                run_once=self.run_once,
-            )
 
-            self.stdout.write(self.style.SUCCESS(f"Command {cmd_name} completed successfully in {duration:.2f}s"))
+            if not dry_run:
+                record_command_execution(
+                    command_name=cmd_name,
+                    success=True,
+                    parameters=serializable_options,
+                    output=str(result) if result else "",
+                    duration=duration,
+                    run_once=self.run_once,
+                )
+
+            success_msg = f"Command {cmd_name} completed successfully in {duration:.2f}s"
+            if dry_run:
+                success_msg += " (dry run - changes rolled back)"
+            self.stdout.write(self.style.SUCCESS(success_msg))
             return result
 
         except Exception as e:
@@ -127,14 +145,15 @@ class ManagedCommand(BaseCommand):
             duration = time.time() - start_time
             error_message = f"{type(e).__name__}: {str(e)}"
 
-            record_command_execution(
-                command_name=cmd_name,
-                success=False,
-                parameters=serializable_options,
-                error_message=error_message,
-                duration=duration,
-                run_once=self.run_once,
-            )
+            if not dry_run:
+                record_command_execution(
+                    command_name=cmd_name,
+                    success=False,
+                    parameters=serializable_options,
+                    error_message=error_message,
+                    duration=duration,
+                    run_once=self.run_once,
+                )
 
             self.stdout.write(self.style.ERROR(f"Command {cmd_name} failed: {error_message}"))
             raise

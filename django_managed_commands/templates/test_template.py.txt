@@ -46,4 +46,15 @@ class Test{class_name}Command(TestCase):
         # - Verify database changes were rolled back
         pass
 
+    def test_command_dry_run_rolls_back(self):
+        """Verify that a `--dry-run` flag reverts the transaction, and no record is stored"""
+        out = StringIO()
+        call_command("{command_name}", "--dry-run", stdout=out)
+
+        self.assertIn("DRY RUN", out.getvalue())
+        self.assertIn("rolled back", out.getvalue())
+        self.assertFalse(
+            CommandExecution.objects.filter(command_name="{app_name}.{command_name}").exists()
+        )
+
 {run_behavior_test}
