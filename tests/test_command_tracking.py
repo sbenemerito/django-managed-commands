@@ -158,11 +158,10 @@ class CommandTrackingIntegrationTest(TestCase):
         with open(command_path, "r") as f:
             content = f.read()
 
-        add_args_start = content.find("def add_arguments(self, parser):")
-        if add_args_start != -1:
-            add_args_end = content.find("def execute_command(self", add_args_start)
-
+        exec_cmd_start = content.find("def execute_command(self")
+        if exec_cmd_start != -1:
             new_add_arguments = """def add_arguments(self, parser):
+        super().add_arguments(parser)
         parser.add_argument(
             '--test-arg',
             type=str,
@@ -171,7 +170,7 @@ class CommandTrackingIntegrationTest(TestCase):
         )
 
     """
-            content = content[:add_args_start] + new_add_arguments + content[add_args_end:]
+            content = content[:exec_cmd_start] + new_add_arguments + content[exec_cmd_start:]
 
             with open(command_path, "w") as f:
                 f.write(content)

@@ -39,56 +39,11 @@ class Test{class_name}Command(TestCase):
         # Side-effect assertions should be around here
 
     def test_command_failure(self):
-        """
-        Verify the command handles failures gracefully. Tests here should be along the lines of:
-        - error scenarios specific to your command like invalid input, etc
-        - errors are recorded in CommandExecution
-        - database changes are rolled back on failure
-        """
-        # You can add pre-execution assertions here
-
-        call_command("{command_name}")
-
-        # Verify execution was marked as unsuccessful
-        execution = CommandExecution.objects.first()
-        self.assertFalse(execution.success)
-        # Verify that error message comes up non-blank (you can check parameters, and output furthere here)
-        self.assertNotEqual(execution.error_message, "")
-
-        # Roll back assertions should be around here
-
-    def test_command_with_arguments(self):
-        """Test command with various arguments and options."""
-        # Example: call_command('{command_name}', '--option', 'value')
-        # Add tests for any command-specific arguments or options
+        # TODO: Implement failure test for your specific error scenarios:
+        # - Trigger an error condition
+        # - Verify ComandExecution::success is False
+        # - Verify ComandExecution::error_message is populated
+        # - Verify database changes were rolled back
         pass
 
-    def test_run_once_prevents_reexecution(self):
-        """
-        Verify that run_once=True prevents command from running twice.
-
-        Note: Only include this test if your command has run_once=True
-        Remove this test if run_once=False or not applicable.
-        """
-        # First execution should succeed
-        call_command("{command_name}")
-        first_execution = CommandExecution.objects.first()
-        self.assertTrue(first_execution.success)
-
-        # Second execution should be prevented
-        out = StringIO()
-        call_command("{command_name}", stdout=out)
-
-        # Verify only one execution record exists
-        self.assertEqual(CommandExecution.objects.count(), 1)
-
-        # Verify output indicates command was skipped
-        output = out.getvalue()
-        self.assertIn("already been executed", output)
-
-    # Add additional test cases below as needed for your specific command
-    # Examples:
-    # - test_command_with_database_operations
-    # - test_command_with_external_api_calls
-    # - test_command_idempotency
-    # - test_command_performance
+{run_behavior_test}
