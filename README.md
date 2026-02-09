@@ -103,6 +103,7 @@ The `ManagedCommand` base class automatically handles:
 - **Execution tracking**: Records success/failure in `CommandExecution` model
 - **Timing**: Measures and stores execution duration
 - **Database transactions**: Your logic runs inside `transaction.atomic()` - if an exception is raised, all database changes are rolled back
+- **Dry-run mode**: Built-in `--dry-run` flag that executes your command but rolls back all database changes by reverting the database transaction.
 - **Error recording**: Failures are logged with error messages before re-raising
 
 ### Creating a run-once command
@@ -201,10 +202,12 @@ class Command(ManagedCommand):
     # command_name = "myapp.custom_name"
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)  # Keeps --dry-run flag
         parser.add_argument("--limit", type=int, default=100)
 
     def execute_command(self, *args, **options):
         # This runs inside a database transaction
+        # Use --dry-run to preview changes without committing
         limit = options["limit"]
         processed = self.do_work(limit)
         self.stdout.write(f"Processed {processed} items")
@@ -303,6 +306,42 @@ class Command(ManagedCommand):
 - Execution recording happens *outside* the transaction, so failures are always logged
 - This ensures data consistency without manual transaction management
 
+### Dry-Run Mode
+
+All commands extending `ManagedCommand` automatically have a `--dry-run` flag:
+
+```bash
+python manage.py my_command --dry-run
+```
+
+**What it does:**
+
+1. Executes your entire `execute_command()` logic normally
+2. At the end, rolls back all database changes (nothing is committed)
+3. Skips creating a `CommandExecution` record
+
+**Example output:**
+
+```
+DRY RUN - all database changes will be rolled back
+Processing 100 items...
+my_command completed successfully in 2.35s (dry run - changes rolled back)
+```
+
+**Use cases:**
+
+- Preview what a command will do before running it for real
+- Test commands in production without making changes
+- Validate data imports before committing
+- Debug command logic with real data
+
+**Note:** The `--dry-run` flag is provided by `ManagedCommand.add_arguments()`. If you override `add_arguments()` in your command, call `super().add_arguments(parser)` to keep this functionality:
+
+```python
+def add_arguments(self, parser):
+    super().add_arguments(parser)  # Keeps --dry-run
+```
+
 ### Tracking Behavior
 
 All command executions are automatically tracked with the following information:
@@ -384,7 +423,7 @@ To add tracking to existing commands:
 
 #### `ManagedCommand`
 
-Base class for Django management commands with automatic tracking and transaction support.
+Base class for Django management commands with automatic tracking, transaction support, and dry-run mode.
 
 **Location:** `django_managed_commands.base.ManagedCommand`
 
@@ -393,10 +432,14 @@ Base class for Django management commands with automatic tracking and transactio
 - `run_once` (bool, default=False): Set to `True` to prevent duplicate executions
 - `command_name` (str, default=None): Override to customize the command name. If not set, auto-derived from module path (e.g., `myapp.management.commands.foo` → `myapp.foo`)
 
+**Built-in Flags:**
+
+- `--dry-run`: Execute command but roll back all database changes. No execution record is created.
+
 **Methods to Override:**
 
 - `execute_command(self, *args, **options)`: Your command logic. Runs inside a database transaction.
-- `add_arguments(self, parser)`: Add command-line arguments (same as `BaseCommand`)
+- `add_arguments(self, parser)`: Add command-line arguments. Call `super().add_arguments(parser)` to keep `--dry-run`.
 
 **Example:**
 ```python
@@ -408,18 +451,14 @@ class Command(ManagedCommand):
     run_once = False
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)  # Keeps --dry-run flag
         parser.add_argument("--source", type=str, required=True)
-        parser.add_argument("--dry-run", action="store_true")
 
     def execute_command(self, *args, **options):
         source = options["source"]
-        dry_run = options["dry_run"]
-
-        if dry_run:
-            self.stdout.write("Dry run mode - no changes will be made")
-            return
 
         # Your logic here - runs in a transaction
+        # Use --dry-run to execute without committing changes
         count = self.import_data(source)
         self.stdout.write(self.style.SUCCESS(f"Imported {count} records"))
         return count  # Stored in execution record
@@ -434,6 +473,7 @@ class Command(ManagedCommand):
 - Execution is recorded in `CommandExecution` model (success or failure)
 - Duration is automatically measured
 - On exception: transaction rolls back, error is recorded, exception re-raised
+- With `--dry-run`: executes normally, then rolls back all changes (no record created)
 
 ### Utility Functions
 

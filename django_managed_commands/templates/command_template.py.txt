@@ -5,9 +5,10 @@ class Command(ManagedCommand):
     """
     {command_name} management command.
 
-    This command extends ManagedCommand which provides:
+    Extends ManagedCommand which provides:
     - Automatic execution tracking in CommandExecution model
     - Database transaction wrapping (rollback on failure)
+    - Built-in --dry-run flag (executes but rolls back all changes)
     - Timing and duration recording
     - Run-once support via `run_once = True`
     """
@@ -18,16 +19,19 @@ class Command(ManagedCommand):
     run_once = False
 
     def add_arguments(self, parser):
-        # Example argument (uncomment and modify as needed):
-        # parser.add_argument(
-        #     "--dry-run",
-        #     action="store_true",
-        #     help="Run without making changes",
-        # )
-        # Docs: https://docs.djangoproject.com/en/stable/howto/custom-management-commands/
-        pass
+        """
+        Add your custom arguments here.
+        Docs: https://docs.djangoproject.com/en/stable/howto/custom-management-commands/
+
+        Do not remove the super() call - it provides the --dry-run flag.
+        """
+        super().add_arguments(parser)
+        # parser.add_argument("--my-arg", type=str, help="Custom argument")
 
     def execute_command(self, *args, **options):
         # TODO: Add your command logic here
+        # The --dry-run flag is handled automatically by the base class:
+        # - All database changes are rolled back at the end
+        # - No execution record is created
 
         self.stdout.write(self.style.SUCCESS("{command_name} completed successfully"))

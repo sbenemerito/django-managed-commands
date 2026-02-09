@@ -131,15 +131,9 @@ class Command(BaseCommand):
 
         if not force:
             if command_file_path.exists():
-                raise CommandError(
-                    f"Command file already exists: {command_file_path}\n"
-                    f"Use --force to overwrite."
-                )
+                raise CommandError(f"Command file already exists: {command_file_path}\nUse --force to overwrite.")
             if test_file_path.exists():
-                raise CommandError(
-                    f"Test file already exists: {test_file_path}\n"
-                    f"Use --force to overwrite."
-                )
+                raise CommandError(f"Test file already exists: {test_file_path}\nUse --force to overwrite.")
 
         # ============================================
         # LOAD TEMPLATES
@@ -181,15 +175,36 @@ class Command(BaseCommand):
         # Handle run_once flag
         if run_once:
             # Replace 'run_once = False' with 'run_once = True'
-            command_content = command_content.replace(
-                "run_once = False", "run_once = True"
-            )
+            command_content = command_content.replace("run_once = False", "run_once = True")
+
+        if run_once:
+            run_behavior_test = """    def test_run_once_prevents_reexecution(self):
+        call_command("{command_name}")
+        first_execution = CommandExecution.objects.first()
+        self.assertTrue(first_execution.success)
+
+        out = StringIO()
+        call_command("{command_name}", stdout=out)
+
+        self.assertEqual(CommandExecution.objects.count(), 1)
+        self.assertIn("Skipped", out.getvalue())""".format(command_name=command_name)
+        else:
+            run_behavior_test = """    def test_can_run_multiple_times(self):
+        call_command("{command_name}")
+        call_command("{command_name}")
+        call_command("{command_name}")
+
+        self.assertEqual(
+            CommandExecution.objects.filter(command_name="{app_name}.{command_name}").count(),
+            3,
+        )""".format(command_name=command_name, app_name=app_name)
 
         # Substitute placeholders in test template
         test_content = test_template.format(
             command_name=command_name,
             app_name=app_name,
             class_name=class_name,
+            run_behavior_test=run_behavior_test,
         )
 
         # ============================================
@@ -208,9 +223,7 @@ class Command(BaseCommand):
         # OUTPUT SUCCESS MESSAGE
         # ============================================
 
-        self.stdout.write(
-            self.style.SUCCESS("\nSuccessfully created management command!\n")
-        )
+        self.stdout.write(self.style.SUCCESS("\nSuccessfully created management command!\n"))
         self.stdout.write(f"  Command: {command_file_path}")
         self.stdout.write(f"  Test:    {test_file_path}")
         self.stdout.write("\nNext steps:")
