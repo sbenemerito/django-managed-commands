@@ -1,6 +1,6 @@
 # django-managed-commands
 
-[![PyPI version](https://img.shields.io/pypi/v/django-managed-commands?v=3)](https://pypi.org/project/django-managed-commands/)
+[![PyPI version](https://img.shields.io/pypi/v/django-managed-commands?v=4)](https://pypi.org/project/django-managed-commands/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-managed-commands?v=3)](https://pypi.org/project/django-managed-commands/)
 [![Django versions](https://img.shields.io/badge/django-3.2+-blue)](https://pypi.org/project/django-managed-commands/)
 [![License](https://img.shields.io/pypi/l/django-managed-commands?v=3)](https://github.com/sbenemerito/django-managed-commands/blob/main/LICENSE)
@@ -16,6 +16,7 @@ It helps prevent migration-related issues by tracking command execution history,
 ### Do you need this?
 
 Too many times I've been involved in projects where somebody creates a management command and:
+
 - it's supposed to be ran only once, but there are no guard rails to enforce that
   - doing a `call_command()` inside an empty DB migration doesn't always work because when there are field changes later on, this raises exceptions
 - we do not certainly know if it was already ran (especially difficult for multi-tenant projects)
@@ -27,7 +28,7 @@ Also because we had something similar in a team I was previously involved in, an
 
 ## Installation
 
-1) Install the package via pip:
+1. Install the package via pip:
 
 ```bash
 pip install django-managed-commands
@@ -39,7 +40,7 @@ or via uv:
 uv add django-managed-commands
 ```
 
-2) Add `django_managed_commands` to your `INSTALLED_APPS` in `settings.py`:
+2. Add `django_managed_commands` to your `INSTALLED_APPS` in `settings.py`:
 
 ```python
 INSTALLED_APPS = [
@@ -48,7 +49,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-3) Run migrations to create the necessary database tables:
+3. Run migrations to create the necessary database tables:
 
 ```bash
 python manage.py migrate django_managed_commands
@@ -95,11 +96,12 @@ class Command(ManagedCommand):
     def execute_command(self, *args, **options):
         # Your command logic here
         self.stdout.write("Sending notifications...")
-        
+
         self.stdout.write(self.style.SUCCESS("send_notifications completed successfully"))
 ```
 
 The `ManagedCommand` base class automatically handles:
+
 - **Execution tracking**: Records success/failure in `CommandExecution` model
 - **Timing**: Measures and stores execution duration
 - **Database transactions**: Your logic runs inside `transaction.atomic()` - if an exception is raised, all database changes are rolled back
@@ -197,7 +199,7 @@ from django_managed_commands.base import ManagedCommand
 
 class Command(ManagedCommand):
     help = "Process data with automatic tracking"
-    
+
     # Optional: override command_name (auto-derived from module path if not set)
     # command_name = "myapp.custom_name"
 
@@ -303,7 +305,7 @@ class Command(ManagedCommand):
 
 - Your `execute_command` logic runs inside `transaction.atomic()`
 - If any exception is raised, all database changes are rolled back
-- Execution recording happens *outside* the transaction, so failures are always logged
+- Execution recording happens _outside_ the transaction, so failures are always logged
 - This ensures data consistency without manual transaction management
 
 ### Dry-Run Mode
@@ -369,6 +371,7 @@ The `CommandExecution` model uses Django's default database. No special configur
 To add tracking to existing commands:
 
 1. **Option A: Extend ManagedCommand (recommended)**
+
    ```python
    # Before
    from django.core.management.base import BaseCommand
@@ -388,11 +391,13 @@ To add tracking to existing commands:
    ```
 
 2. **Option B: Use the generator with --force**
+
    ```bash
    python manage.py create_managed_command myapp existing_command --force
    ```
 
 3. **Option C: Manual tracking** (for special cases where you can't change the base class)
+
    ```python
    import time
    from django_managed_commands.utils import record_command_execution
@@ -442,6 +447,7 @@ Base class for Django management commands with automatic tracking, transaction s
 - `add_arguments(self, parser)`: Add command-line arguments. Call `super().add_arguments(parser)` to keep `--dry-run`.
 
 **Example:**
+
 ```python
 from django_managed_commands.base import ManagedCommand
 
@@ -469,6 +475,7 @@ class Command(ManagedCommand):
 ```
 
 **Behavior:**
+
 - `execute_command()` runs inside `transaction.atomic()`
 - Execution is recorded in `CommandExecution` model (success or failure)
 - Duration is automatically measured
@@ -482,6 +489,7 @@ class Command(ManagedCommand):
 Records a command execution in the database.
 
 **Signature:**
+
 ```python
 record_command_execution(
     command_name,
@@ -507,6 +515,7 @@ record_command_execution(
 **Returns:** `CommandExecution` instance
 
 **Example:**
+
 ```python
 from django_managed_commands.utils import record_command_execution
 
@@ -542,6 +551,7 @@ execution = record_command_execution(
 Checks if a command should execute based on its execution history.
 
 **Signature:**
+
 ```python
 should_run_command(command_name)
 ```
@@ -560,6 +570,7 @@ should_run_command(command_name)
 - Returns `False` only if the most recent execution was successful AND had `run_once=True`
 
 **Example:**
+
 ```python
 from django_managed_commands.utils import should_run_command, record_command_execution
 
@@ -588,6 +599,7 @@ if should_run_command('myapp.setup_data'):
 Retrieves execution history for a specific command.
 
 **Signature:**
+
 ```python
 get_command_history(command_name, limit=10)
 ```
@@ -600,6 +612,7 @@ get_command_history(command_name, limit=10)
 **Returns:** `QuerySet` of `CommandExecution` instances, ordered by execution time (newest first)
 
 **Example:**
+
 ```python
 from django_managed_commands.utils import get_command_history
 
@@ -632,6 +645,7 @@ print(f"Success rate: {success_rate:.1f}%")
 Generates a new Django management command with built-in execution tracking.
 
 **Usage:**
+
 ```bash
 python manage.py create_managed_command <app_name> <command_name> [options]
 ```
@@ -647,6 +661,7 @@ python manage.py create_managed_command <app_name> <command_name> [options]
 - `--force`: Overwrite existing files if they exist
 
 **Example:**
+
 ```bash
 # Create a standard command
 python manage.py create_managed_command myapp send_notifications
@@ -691,6 +706,7 @@ Tracks execution history of Django management commands.
 - `__str__()`: Returns `"{command_name} - {Success|Failed}"`
 
 **Example Usage:**
+
 ```python
 from django_managed_commands.models import CommandExecution
 from django.utils import timezone
@@ -737,11 +753,11 @@ Contributions are welcome! Report bugs or request features via [GitHub Issues](h
 
 1. **Fork the repository** and create a new branch for your feature or bugfix
 2. **Write tests** for any new functionality
-3. **Follow code style**: Ensure your code follows PEP 8 and Django best practices. Use [ruff](https://github.com/astral-sh/ruff) for linting. 
+3. **Follow code style**: Ensure your code follows PEP 8 and Django best practices. Use [ruff](https://github.com/astral-sh/ruff) for linting.
 4. **Update documentation**: Add or update relevant documentation for your changes
 5. **Submit a pull request**: Provide a clear description of your changes
 
-*Note: Yes, I'm currently pushing directly to main - I know, I know. When contributors come around, I'll enforce proper branch protection and PR workflows 🙇‍♂️*
+_Note: Yes, I'm currently pushing directly to main - I know, I know. When contributors come around, I'll enforce proper branch protection and PR workflows 🙇‍♂️_
 
 ### Development Setup
 
