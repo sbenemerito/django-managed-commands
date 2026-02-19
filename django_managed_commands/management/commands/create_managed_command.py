@@ -187,7 +187,7 @@ class Command(BaseCommand):
         call_command("{command_name}", stdout=out)
 
         self.assertEqual(CommandExecution.objects.count(), 1)
-        self.assertIn("Skipped", out.getvalue())""".format(command_name=command_name)
+        self.assertIn("Skipping", out.getvalue())""".format(command_name=command_name)
         else:
             run_behavior_test = """    def test_can_run_multiple_times(self):
         call_command("{command_name}")
